@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+<style>
+    #imageContainer {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: auto; /* Let it match image width */
+        max-width: 100%; /* Prevents overflow */
+        border: 1px solid gray;
+        border-radius: 8px;
+        overflow: hidden;
+        padding: 0;
+        margin: 0 auto;
+    }
+    #imageContainer img {
+        display: block;
+        width: auto;
+        max-width: 100%;
+        height: auto;
+    }
+</style>
+
+{% block content %}
+<div class="container mx-auto px-6 py-10">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+    <!-- Product Image -->
+    <div class="flex flex-col">
+      {% with product.images.first as main_image %}
+        {% if main_image %}
+        <div class="flex flex-col items-center">
+            <div id="imageContainer" class="border rounded-lg overflow-hidden w-[300px] h-auto">
+                <img id="mainImage" class="w-full h-auto" src="{{ main_image.image.url }}" alt="{{ product.name }}">            </div>
+            </div>
+        {% endif %}
+      {% endwith %}
+      
+      <!-- Thumbnail Images -->
+      <div class="flex justify-center space-x-2 mt-4 w-full">
+        {% for image in product.images.all %}
+        <img src="{{ image.image.url }}" alt="Thumbnail" class="w-16 h-16 border rounded cursor-pointer"
+          onclick="changeImage('{{ image.image.url }}')">
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Product Details -->
+    <div>
+      <h1 class="text-3xl font-bold">{{ product.name }}</h1>
+      <p class="text-gray-600 mt-2">{{ product.description }}</p>
+      
+      {% load humanize %} 
+      <!-- Product Price -->
+      <p class="mt-2 text-xl font-bold">Rp {{ product.price|intcomma }}</p>
+      {% if category == "fashion" %}
+      <!-- Color Options (Fashion Only) -->
+      <p class="mt-4 font-semibold">Color: <span id="selectedColor" class="text-gray-700">None</span></p>
+      <div class="flex space-x-2 mt-2">
+          {% for color in product.color %}
+          <button class="color-btn w-10 h-10 rounded border border-gray-400"
+              style="background-color: {{ color|lower }}; border: 1px solid gray;"
+              onclick="selectColor('{{ color }}', this)">
+          </button>
+          {% endfor %}
+      </div>
+      
+      <!-- Size Options (Fashion Only) -->
+      <p class="mt-4 font-semibold">Size: <span id="selectedSize" class="text-gray-700">None</span></p>
+      <div class="flex space-x-2 mt-2">
+          {% for size in product.size %}
+          <button class="size-btn px-4 py-2 border border-gray-400 rounded border-gray-400"
+              style="border: 1px solid gray;"
+              onclick="selectSize('{{ size }}', this)">
+              {{ size }}
+          </button>
+          {% endfor %}
+      </div>
+      {% endif %}
+      
+        <!-- Add to Cart Button -->
+        <button id="addToCartBtn"
+            data-product-id="{{ product.product_id }}"
+            data-product-type="{{ category }}"
+            class="mt-6 w-full bg-pink-500 text-white py-3 rounded-lg text-lg font-semibold">
+            Add To Cart
+        </button>
+    </div>
+  </div>
+</div>
+
+<script>
+    function changeImage(src) {
+        let mainImage = document.getElementById("mainImage");
+    
+        mainImage.src = src;
+    }
+    
+  function selectColor(color, btn) {
+    document.getElementById("selectedColor").textContent = color;
+    document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("ring-2", "ring-gray-700"));
+    btn.classList.add("ring-2", "ring-gray-700");
+  }
+
+  function selectSize(size, btn) {
+    document.getElementById("selectedSize").textContent = size;
+    document.querySelectorAll(".size-btn").forEach(b => b.classList.remove("bg-gray-300"));
+    btn.classList.add("bg-gray-300");
+  }
+
+    document.getElementById("addToCartBtn").addEventListener("click", function () {
+        let button = this;
+        let productId = button.getAttribute("data-product-id").trim();
+        let productType = button.getAttribute("data-product-type").trim();
+        
+        let color = document.getElementById("selectedColor")?.textContent || null;
+        let size = document.getElementById("selectedSize")?.textContent || null;
+
+        let payload = {
+            product_id: productId,
+            product_type: productType,
+            quantity: 1,
+            color: color !== "None" ? color : null,
+            size: size !== "None" ? size : null
+        };
+
+        fetch("{% url 'add_to_cart' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert("Added to cart successfully!");
+            } else {
+                alert("Failed to add to cart: " + (data.error || "Unknown error"));
+            }
+        })
+        .catch(error => console.error("Error:", error));
+    });
+</script>
+{% endblock %}
