@@ -2,7 +2,7 @@
  * ShoppingCart Module
  * Handles all shopping cart operations for UrbanVibe
  */
-const ShoppingCart = (function() {
+const ShoppingCart = (function () {
     // Private variables
     let _cart = {
         items: [],
@@ -12,14 +12,14 @@ const ShoppingCart = (function() {
         total: 0,
         voucherCode: ""
     };
-    
+
     // DOM Elements
     let elements = {};
-    
+
     // Constants
     const NOTIFICATION_DURATION = 1500; // Shortened animation duration (1.5s)
     const TAX_RATE = 0.10; // 10% tax
-    
+
     /**
      * Initialize the shopping cart
      */
@@ -36,10 +36,10 @@ const ShoppingCart = (function() {
             applyVoucherButton: document.getElementById('apply-voucher'),
             emptyCartMessage: document.getElementById('empty-cart-message')
         };
-        
+
         // Check if user is authenticated
         const isAuthenticated = document.body.dataset.authenticated === 'true';
-        
+
         if (!isAuthenticated) {
             // For non-authenticated users, load cart from localStorage
             loadCartFromStorage();
@@ -47,23 +47,23 @@ const ShoppingCart = (function() {
             calculateTotals();
             updateCartUI();
         }
-        
+
         // Setup event listeners
         if (elements.applyVoucherButton) {
             elements.applyVoucherButton.addEventListener('click', applyVoucher);
         }
-        
+
         if (elements.checkoutButton) {
             elements.checkoutButton.addEventListener('click', proceedToCheckout);
         }
-        
+
         // Remove any existing notifications that might be lingering
         const existingNotificationContainer = document.getElementById('notification-container');
         if (existingNotificationContainer) {
             existingNotificationContainer.remove();
         }
     }
-    
+
     /**
      * Load cart data from localStorage
      */
@@ -79,7 +79,7 @@ const ShoppingCart = (function() {
                 console.error("Error parsing cart data:", e);
             }
         }
-        
+
         // Check for saved voucher
         const savedVoucher = localStorage.getItem('voucherCode');
         if (savedVoucher && elements.voucherInput) {
@@ -87,7 +87,7 @@ const ShoppingCart = (function() {
             _cart.voucherCode = savedVoucher;
         }
     }
-    
+
     /**
      * Save cart data to localStorage
      */
@@ -97,55 +97,55 @@ const ShoppingCart = (function() {
             localStorage.setItem('voucherCode', _cart.voucherCode);
         }
     }
-    
+
     /**
      * Calculate cart totals
      */
     function calculateTotals() {
         // Calculate subtotal
         _cart.subtotal = _cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        
+
         // Calculate tax (10%)
         _cart.tax = Math.round(_cart.subtotal * TAX_RATE);
-        
+
         // Apply discount if voucher code exists
         if (_cart.voucherCode === "ibusesar") {
             _cart.discount = 50000;
         } else if (_cart.voucherCode === "URBAN25") {
             _cart.discount = Math.round(_cart.subtotal * 0.25);
         }
-        
+
         // Calculate total
         _cart.total = _cart.subtotal + _cart.tax - _cart.discount;
     }
-    
+
     /**
      * Update the cart UI
      */
     function updateCartUI() {
         const isAuthenticated = document.body.dataset.authenticated === 'true';
-        
+
         if (!isAuthenticated) {
             renderClientCart();
         }
-        
+
         // Update summary totals
         if (elements.subtotalElement) {
             elements.subtotalElement.textContent = `Rp. ${_cart.subtotal.toLocaleString()}`;
         }
-        
+
         if (elements.discountElement) {
             elements.discountElement.textContent = `Rp. ${_cart.discount.toLocaleString()}`;
         }
-        
+
         if (elements.taxElement) {
             elements.taxElement.textContent = `Rp. ${_cart.tax.toLocaleString()}`;
         }
-        
+
         if (elements.totalElement) {
             elements.totalElement.textContent = `Rp. ${_cart.total.toLocaleString()}`;
         }
-        
+
         // Toggle empty cart message
         if (elements.emptyCartMessage) {
             if (_cart.items.length === 0) {
@@ -154,33 +154,33 @@ const ShoppingCart = (function() {
                 elements.emptyCartMessage.style.display = 'none';
             }
         }
-        
+
         // Save cart to localStorage for non-authenticated users
         if (!isAuthenticated) {
             saveCartToStorage();
         }
     }
-    
+
     /**
      * Render cart items for non-authenticated users
      */
     function renderClientCart() {
         if (!elements.cartItemsContainer) return;
-        
+
         // Only render for non-authenticated users
         const isAuthenticated = document.body.dataset.authenticated === 'true';
         if (isAuthenticated) return;
-        
+
         // Clear container
         const clientItemsContainer = document.getElementById('client-items');
         if (clientItemsContainer) {
             clientItemsContainer.innerHTML = '';
-            
+
             _cart.items.forEach((item, index) => {
                 const itemElement = document.createElement('div');
                 itemElement.classList.add('flex', 'items-center', 'border', 'rounded-lg', 'p-4', 'shadow');
                 itemElement.dataset.itemId = item.id;
-                
+
                 itemElement.innerHTML = `
                     <img src="https://i.pinimg.com/736x/be/0e/95/be0e95ca27bdf6de0c06406b8fc13d48.jpg" 
                          alt="${item.name}" class="w-24 h-24 object-cover rounded-md">
@@ -199,10 +199,10 @@ const ShoppingCart = (function() {
                         </div>
                     </div>
                 `;
-                
+
                 clientItemsContainer.appendChild(itemElement);
             });
-            
+
             // Toggle empty cart message
             if (_cart.items.length === 0 && elements.emptyCartMessage) {
                 elements.emptyCartMessage.style.display = 'block';
@@ -211,7 +211,7 @@ const ShoppingCart = (function() {
             }
         }
     }
-    
+
     /**
      * Add an item to the cart
      * @param {Object} product - The product to add
@@ -219,7 +219,7 @@ const ShoppingCart = (function() {
      */
     function addToCart(product, quantity = 1) {
         const isAuthenticated = document.body.dataset.authenticated === 'true';
-        
+
         if (isAuthenticated) {
             // For authenticated users, make an AJAX request to the server
             fetch('/add-to-cart/', {
@@ -236,32 +236,32 @@ const ShoppingCart = (function() {
                     size: product.size
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification(`${product.name} added to cart`, 'success');
-                    
-                    // Refresh the page to update cart
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                } else {
-                    showNotification(data.message || 'Error adding to cart', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error adding to cart:', error);
-                showNotification('Error adding to cart', 'error');
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(`${product.name} added to cart`, 'success');
+
+                        // Refresh the page to update cart
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showNotification(data.message || 'Error adding to cart', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error adding to cart:', error);
+                    showNotification('Error adding to cart', 'error');
+                });
         } else {
             // For non-authenticated users, manage cart in localStorage
-            const existingItemIndex = _cart.items.findIndex(item => 
-                item.id === product.id && 
+            const existingItemIndex = _cart.items.findIndex(item =>
+                item.id === product.id &&
                 item.type === product.type &&
                 item.color === product.color &&
                 item.size === product.size
             );
-            
+
             if (existingItemIndex !== -1) {
                 // Update existing item
                 _cart.items[existingItemIndex].quantity += quantity;
@@ -277,16 +277,16 @@ const ShoppingCart = (function() {
                     quantity: quantity
                 });
             }
-            
+
             // Recalculate and update UI
             calculateTotals();
             updateCartUI();
-            
+
             // Show notification
             showNotification(`${product.name} added to cart`, 'success');
         }
     }
-    
+
     /**
      * Update item quantity in cart
      * @param {string} itemId - The item ID
@@ -294,7 +294,7 @@ const ShoppingCart = (function() {
      */
     function updateItemQuantity(itemId, action) {
         const isAuthenticated = document.body.dataset.authenticated === 'true';
-    
+
         if (isAuthenticated) {
             // For authenticated users, make an AJAX request to the server
             fetch('/update-cart-item/', {
@@ -308,34 +308,34 @@ const ShoppingCart = (function() {
                     action: action
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.removed) {
-                    // Remove item from DOM
-                    const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
-                    if (itemElement) {
-                        itemElement.remove();
+                .then(response => response.json())
+                .then(data => {
+                    if (data.removed) {
+                        // Remove item from DOM
+                        const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
+                        if (itemElement) {
+                            itemElement.remove();
+                        }
+
+                        // Update cart summary
+                        calculateTotals();
+                        updateCartUI();
+
+                        showNotification('Item removed from cart', 'success');
+                        window.location.reload();
+                    } else {
+                        // Refresh the page to update cart
+                        window.location.reload();
                     }
-                    
-                    // Update cart summary
-                    calculateTotals();
-                    updateCartUI();
-                    
-                    showNotification('Item removed from cart', 'success');
-                    window.location.reload();
-                } else {
-                    // Refresh the page to update cart
-                    window.location.reload();
-                }
-            })
-            .catch(error => {
-                console.error('Error updating cart:', error);
-                showNotification('Error updating cart', 'error');
-            });
+                })
+                .catch(error => {
+                    console.error('Error updating cart:', error);
+                    showNotification('Error updating cart', 'error');
+                });
         } else {
             // For non-authenticated users, manage cart in localStorage
             const itemIndex = _cart.items.findIndex(item => item.id == itemId);
-    
+
             if (itemIndex !== -1) {
                 if (action === 'increase') {
                     _cart.items[itemIndex].quantity += 1;
@@ -352,7 +352,7 @@ const ShoppingCart = (function() {
                     _cart.items.splice(itemIndex, 1);
                     showNotification('Item removed from cart', 'success');
                 }
-    
+
                 // Recalculate and update UI
                 calculateTotals();
                 updateCartUI();
@@ -365,14 +365,14 @@ const ShoppingCart = (function() {
      */
     function applyVoucher() {
         const voucherCode = elements.voucherInput.value.trim();
-        
+
         if (!voucherCode) {
             showNotification('Please enter a voucher code', 'error');
             return;
         }
-        
+
         const isAuthenticated = document.body.dataset.authenticated === 'true';
-        
+
         if (isAuthenticated) {
             // For authenticated users, make an AJAX request to the server
             fetch('/apply-voucher/', {
@@ -385,37 +385,37 @@ const ShoppingCart = (function() {
                     voucher_code: voucherCode
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.valid) {
-                    showNotification(data.message, 'success');
-                    
-                    // Update discount and total in UI
-                    if (elements.discountElement) {
-                        elements.discountElement.textContent = `Rp. ${data.discount_amount.toLocaleString()}`;
+                .then(response => response.json())
+                .then(data => {
+                    if (data.valid) {
+                        showNotification(data.message, 'success');
+
+                        // Update discount and total in UI
+                        if (elements.discountElement) {
+                            elements.discountElement.textContent = `Rp. ${data.discount_amount.toLocaleString()}`;
+                        }
+
+                        if (elements.totalElement) {
+                            elements.totalElement.textContent = `Rp. ${data.final_total.toLocaleString()}`;
+                        }
+
+                        if (elements.taxElement) {
+                            elements.taxElement.textContent = `Rp. ${data.tax.toLocaleString()}`;
+                        }
+                    } else {
+                        showNotification(data.message, 'error');
                     }
-                    
-                    if (elements.totalElement) {
-                        elements.totalElement.textContent = `Rp. ${data.final_total.toLocaleString()}`;
-                    }
-                    
-                    if (elements.taxElement) {
-                        elements.taxElement.textContent = `Rp. ${data.tax.toLocaleString()}`;
-                    }
-                } else {
-                    showNotification(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error applying voucher:', error);
-                showNotification('Error applying voucher', 'error');
-            });
+                })
+                .catch(error => {
+                    console.error('Error applying voucher:', error);
+                    showNotification('Error applying voucher', 'error');
+                });
         } else {
             // For non-authenticated users, apply voucher locally
             let discountAmount = 0;
             let valid = false;
             let message = "Invalid voucher code";
-            
+
             if (voucherCode === "ibusesar") {
                 discountAmount = 50000;
                 valid = true;
@@ -425,40 +425,40 @@ const ShoppingCart = (function() {
                 valid = true;
                 message = `Voucher applied successfully! Discount: Rp. ${discountAmount.toLocaleString()}`;
             }
-            
+
             if (valid) {
                 _cart.voucherCode = voucherCode;
                 _cart.discount = discountAmount;
-                
+
                 // Recalculate and update UI
                 calculateTotals();
                 updateCartUI();
-                
+
                 // Save voucher to localStorage
                 localStorage.setItem('voucherCode', voucherCode);
-                
+
                 showNotification(message, 'success');
             } else {
                 showNotification(message, 'error');
-                
+
                 // Remove invalid voucher
                 _cart.voucherCode = "";
                 _cart.discount = 0;
                 localStorage.removeItem('voucherCode');
-                
+
                 // Recalculate and update UI
                 calculateTotals();
                 updateCartUI();
             }
         }
     }
-    
+
     /**
      * Proceed to checkout
      */
     function proceedToCheckout() {
         const isAuthenticated = document.body.dataset.authenticated === 'true';
-        
+
         if (isAuthenticated) {
             window.location.href = "/checkout/";
         } else {
@@ -466,7 +466,7 @@ const ShoppingCart = (function() {
             window.location.href = "/login/?next=/checkout/";
         }
     }
-    
+
     /**
      * Show notification
      * @param {string} message - The notification message
@@ -478,7 +478,7 @@ const ShoppingCart = (function() {
         if (existingNotificationContainer) {
             existingNotificationContainer.remove();
         }
-        
+
         // Create notification container
         let notificationContainer = document.createElement('div');
         notificationContainer.id = 'notification-container';
@@ -489,7 +489,7 @@ const ShoppingCart = (function() {
             z-index: 9999;
         `;
         document.body.appendChild(notificationContainer);
-        
+
         // Create notification element
         const notification = document.createElement('div');
         notification.classList.add('notification');
@@ -500,29 +500,29 @@ const ShoppingCart = (function() {
             border-radius: 6px;
             margin-bottom: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            animation: slideIn 0.3s ease, fadeOut 0.3s ease ${NOTIFICATION_DURATION/1000 - 0.3}s forwards;
+            animation: slideIn 0.3s ease, fadeOut 0.3s ease ${NOTIFICATION_DURATION / 1000 - 0.3}s forwards;
             display: flex;
             align-items: center;
         `;
-        
+
         // Add icon based on type
         const icon = type === 'success' ? '✅' : '❌';
-        
+
         notification.innerHTML = `
             <span style="margin-right: 8px;">${icon}</span>
             <span>${message}</span>
         `;
-        
+
         // Add to container
         notificationContainer.appendChild(notification);
-        
+
         // Remove after duration
         setTimeout(() => {
             notification.remove();
             notificationContainer.remove();
         }, NOTIFICATION_DURATION);
     }
-    
+
     /**
      * Get CSRF token from cookies
      * @returns {string} The CSRF token
@@ -532,10 +532,10 @@ const ShoppingCart = (function() {
             .split('; ')
             .find(row => row.startsWith('csrftoken='))
             ?.split('=')[1];
-        
+
         return cookieValue || '';
     }
-    
+
     // Public API
     return {
         init,
